@@ -9,7 +9,7 @@
 //    import "github.com/tristanls/go-actor"
 //
 //    // create an actor behavior
-//    func Print(self actor.Reference, become actor.Become, msg actor.Message) {
+//    func Print(context actor.Context, msg actor.Message) {
 //      for _, param := range msg.Params {
 //        fmt.Println(param.(string))
 //      }  
@@ -38,12 +38,11 @@ package actor
 // Become is a function that takes the behavior to handle the next message
 type Become func(Behavior)
 
-// Behavior describes how an actor will respond to a message.
-// Actors are created with behaviors. Each behavior takes a reference to "self",
-// a function to "become" another behavior, and a message to respond to.
+// Behavior describes how an actor will respond to a message. Actors are created 
+// with behaviors. Each behavior takes a context and a message to respond to. 
 // These behaviors are invoked by the library when executing an actor
 // configuration.
-type Behavior func(Reference, Become, Message)
+type Behavior func(Context, Message)
 
 // Message is just a slice of data
 type Message struct {
@@ -113,6 +112,13 @@ func (configuration *ActorConfiguration) start(countChan chan int) {
   }()
 }
 
+// Context is passed to an actor behavior when it is invoked upon a message receive
+type Context struct {
+	Become Become
+	Create func(Behavior) Reference
+	Self Reference
+}
+
 // Configuration creates a new actor configuration
 func Configuration() ActorConfiguration {
   countChan := make(chan int)
@@ -153,7 +159,8 @@ func actorBehavior(configuration ActorConfiguration, behavior Behavior, referenc
       }()
       msg := <-reference
       // fmt.Println("trace: <-", msg.Params)
-      behavior(messageCounter, become, msg)
+      context := Context{Become: become, Create: configuration.Create, Self: messageCounter}
+      behavior(context, msg)
       close(messageCounter)
       go func() {
         for selfMsg := range self {

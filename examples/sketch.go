@@ -3,12 +3,12 @@ package main
 import "fmt"
 import "github.com/tristanls/go-actor"
 
-func Change(self actor.Reference, become actor.Become, msg actor.Message) {
-  self <- msg
-  become(Print)
+func Change(context actor.Context, msg actor.Message) {
+  context.Self <- msg
+  context.Become(Print)
 }
 
-func Print(self actor.Reference, become actor.Become, msg actor.Message) {
+func Print(context actor.Context, msg actor.Message) {
   for _, param := range msg.Params {
     fmt.Println(param.(string))
   }

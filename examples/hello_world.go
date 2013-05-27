@@ -2,7 +2,7 @@
   import "fmt"
   import "github.com/tristanls/go-actor"
   // create an actor behavior
-  func Print(self actor.Reference, become actor.Become, msg actor.Message) {
+  func Print(context actor.Context, msg actor.Message) {
     for _, param := range msg.Params {
       fmt.Println(param.(string))
     }
