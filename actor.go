@@ -13,6 +13,8 @@
 //      for _, param := range msg.Params {
 //        fmt.Println(param.(string))
 //      }  
+//      // starting go routines within an actor behavior is *NOT SAFE*
+//      // create actors instead, that's what they're for :)
 //    }
 //
 //    // create a new actor configuration
