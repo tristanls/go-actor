@@ -1,7 +1,7 @@
 // Go language actor framework.
 //
 // Stability: 1 - Experimental
-// (see: http://nodejs.org/api/documentation.html#documentation_stability_index)
+// (see: https://github.com/tristanls/stability-index#stability-1---experimental)
 //
 // Create an actor behavior:
 //    func Print(self actor.Reference, become actor.Become, msg actor.Message) {
