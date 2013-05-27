@@ -3,50 +3,52 @@
 // Stability: 1 - Experimental
 // (see: https://github.com/tristanls/stability-index#stability-1---experimental)
 //
-// Create an actor behavior:
+//    package main
+//
+//    import "fmt"
+//    import "github.com/tristanls/go-actor"
+//
+//    // create an actor behavior
 //    func Print(self actor.Reference, become actor.Become, msg actor.Message) {
 //      for _, param := range msg.Params {
 //        fmt.Println(param.(string))
 //      }  
 //    }
 //
-// Create a new actor configuration:
+//    // create a new actor configuration
 //    func main() {
 //      config := actor.Configuration()
-//      ...
-//
-// Create a new actor:
-//      ...
+//      
+//      // create a new actor
 //      printer := config.Create(Print)
-//      ...
+//     
+//      // send a message to an actor
+//      // both ways of creating a message are identical
+//      printer <- config.CreateMessage("hello world")
+//      printer <- actor.CreateMessage("hello world")
+//      printer <- actor.Message{Params: []interface{}{"hello world"}}
 //
-// Send a message to an actor:
-//      ...
-//      printer <- config.CreateMessage("print me")
-//      printer <- actor.CreateMessage("print me")
-//      ...
-//
-// Wait for actor configuration to finish:
-//      ...
+//      // wait for actor configuration to finish
 //      <-config.Done
 //    }
 package actor
 
-import "fmt"
-
-// Process the next message using the Behavior given
+// Become is a function that takes the behavior to handle the next message
 type Become func(Behavior)
 
+// Behavior describes how an actor will respond to a message.
 // Actors are created with behaviors. Each behavior takes a reference to "self",
 // a function to "become" another behavior, and a message to respond to.
+// These behaviors are invoked by the library when executing an actor
+// configuration.
 type Behavior func(Reference, Become, Message)
 
-// Each message is just a slice of data
+// Message is just a slice of data
 type Message struct {
   Params []interface{}
 }
 
-// Actor references is how messages are sent to actors
+// Reference to an actor is a channel that accepts messages
 type Reference chan<- Message
 
 // Send is here for completeness, use `Reference <- Message` notation instead
@@ -64,15 +66,16 @@ type ActorConfiguration struct {
   messageCount int
 }
 
-// Create a new actor as part of the actor configuration
+// Create creats a new actor as part of the actor configuration
 func (configuration *ActorConfiguration) Create(behavior Behavior) Reference {
   messageCounter := make(chan Message)
   reference := make(chan Message)
   go actorBehavior(*configuration, behavior, reference)
   go func() {
-    msg := <-messageCounter
-    configuration.countChan <- 1
-    reference <- msg
+    for msg := range messageCounter {
+    	configuration.countChan <- 1
+    	reference <- msg
+    }
   }()
   return messageCounter
 }
@@ -86,26 +89,33 @@ func (configuration *ActorConfiguration) CreateMessage(params ...interface{}) Me
   return message
 }
 
-// Creates a new actor configuration
-func Configuration() ActorConfiguration {
-  countChan := make(chan int)
-  configuration := ActorConfiguration{Done: make(chan bool), countChan: countChan, messageCount: 0}
+// start starts the configuration message counter that signals when there are
+// no more messages in flight and the configuration has stopped executing
+func (configuration *ActorConfiguration) start(countChan chan int) {
   go func() {
     for {
       i := <-countChan
-      if (i == 1) {
-        configuration.messageCount++
-        fmt.Println("trace: messages in flight", configuration.messageCount)
-      } else {
+      switch i {
+      case 1:
+      	configuration.messageCount++
+      	// fmt.Println("trace: messages in flight", configuration.messageCount)
+      default:
         configuration.messageCount--
-        fmt.Println("trace: messages in flight", configuration.messageCount)
+        // fmt.Println("trace: messages in flight", configuration.messageCount)
         if (configuration.messageCount == 0) {
-          configuration.Done <- true
-          return
+        	configuration.Done <- true
+        	return
         }
       }
     }
   }()
+}
+
+// Configuration creates a new actor configuration
+func Configuration() ActorConfiguration {
+  countChan := make(chan int)
+  configuration := ActorConfiguration{Done: make(chan bool), countChan: countChan, messageCount: 0}
+  configuration.start(countChan)
   return configuration
 }
 
@@ -118,6 +128,9 @@ func CreateMessage(params ...interface{}) Message {
   return message
 }
 
+// actorBehavior implements execution of actor behaviors, become semantics,
+// and making sure that the configuration doesn't exit while messages are still
+// in flight.
 func actorBehavior(configuration ActorConfiguration, behavior Behavior, reference chan Message) {
   var become func(Behavior)
   become = func(nextBehavior Behavior) {
@@ -137,12 +150,12 @@ func actorBehavior(configuration ActorConfiguration, behavior Behavior, referenc
         close(self)
       }()
       msg := <-reference
-      fmt.Println("trace: <-", msg.Params)
+      // fmt.Println("trace: <-", msg.Params)
       behavior(messageCounter, become, msg)
       close(messageCounter)
       go func() {
         for selfMsg := range self {
-          fmt.Println("trace: self <-", selfMsg.Params)
+          // fmt.Println("trace: self <-", selfMsg.Params)
           reference <- selfMsg
         }
         configuration.countChan <- -1
