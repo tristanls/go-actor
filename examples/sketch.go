@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import actor "github.com/tristanls/go-actor"
+import "github.com/tristanls/go-actor"
 
 func Change(self actor.Reference, become actor.Become, msg actor.Message) {
   self <- msg
