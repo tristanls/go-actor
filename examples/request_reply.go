@@ -10,7 +10,6 @@ func Replier(context actor.Context, msg actor.Message) {
     if content == "ping" {
       msg := actor.CreateMessage("reply")
       customer <- msg
-      fmt.Println("replier sent", msg)
     }
   }
 }
@@ -24,7 +23,6 @@ func Requester(context actor.Context, msg actor.Message) {
       replier := context.Create(Replier)
       msg := actor.CreateMessage(context.Self, "ping")
       replier <- msg
-      fmt.Println("requester sent", msg)
     case "reply":
       fmt.Println("requester got reply")
     }

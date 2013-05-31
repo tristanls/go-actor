@@ -154,41 +154,6 @@ func CreateMessage(params ...interface{}) Message {
 // actorBehavior implements execution of actor behaviors, become semantics,
 // and making sure that the configuration doesn't exit while messages are still
 // in flight.
-// func actorBehavior(configuration *ActorConfiguration, behavior Behavior, reference chan Message) {
-//   var become func(Behavior)
-//   become = func(nextBehavior Behavior) {
-//     become = func(Behavior){} // become can only be called once
-//     go actorBehavior(configuration, nextBehavior, reference)
-//     behavior = nil
-//   }
-//   for {
-//     if behavior != nil {
-//       messageCounter := make(chan Message)
-//       self := make(chan Message)
-//       go func() {
-//         for msg := range messageCounter {
-//           configuration.countChan <- 1
-//           self <- msg
-//         }
-//         close(self)
-//       }()
-//       msg := <-reference
-//       // fmt.Println("trace: <-", msg.Params)
-//       context := Context{Become: become, Create: configuration.Create, Self: messageCounter}
-//       behavior(context, msg)
-//       close(messageCounter)
-//       go func() {
-//         for selfMsg := range self {
-//           // fmt.Println("trace: self <-", selfMsg.Params)
-//           reference <- selfMsg
-//         }
-//         configuration.countChan <- -1
-//       }()
-//     } else {
-//       return
-//     }
-//   }
-// }
 func actorBehavior(configuration *ActorConfiguration, behavior Behavior, reference chan Message, instrumentedReference chan Message) {
   var become func(Behavior)
   become = func(nextBehavior Behavior) {
@@ -204,7 +169,11 @@ func actorBehavior(configuration *ActorConfiguration, behavior Behavior, referen
       }
       context := Context{Become: become, Create: configuration.Create, Self: instrumentedReference}
       behavior(context, message)
-      configuration.waitGroup.Done() // one message has been delivered
+      // there is a race condition between last message delivery in behavior
+      // and Done() being called below, where the message is pulled off of a
+      // channel, Done() executes, config finishes, and then only Add(1) 
+      // is called :/ ... by then, main() exits
+      configuration.waitGroup.Done() // one message has been processed
       if configuration.Trace {
         fmt.Println(instrumentedReference, "completed", message)
       }
