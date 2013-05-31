@@ -20,6 +20,7 @@
 //    // create a new actor configuration
 //    func main() {
 //      config := actor.Configuration()
+//      config.Trace = true // trace message deliveries
 //      
 //      // create a new actor
 //      printer := config.Create(Print)
@@ -80,11 +81,32 @@ func (configuration *ActorConfiguration) Create(behavior Behavior) Reference {
   reference := make(chan Message)
   go actorBehavior(configuration, behavior, reference, instrumentedReference)
   go func() {
-    for message := range instrumentedReference {
-      configuration.waitGroup.Add(1)
+    buffer := []Message{}
+    receiveLoop:    
+    for {
+      if len(buffer) == 0 {
+        message, ok := <-instrumentedReference
+        if !ok { break }
+        configuration.waitGroup.Add(1)
+        buffer = append(buffer, message)
+      }
+
+      select {
+      case message, ok := <-instrumentedReference:
+        if !ok { break receiveLoop }
+        configuration.waitGroup.Add(1)
+        buffer = append(buffer, message)
+      case reference <- buffer[0]:
+        buffer = buffer[1:]
+      }
+    }
+    for _, message := range buffer {
       reference <- message
     }
   }()
+  if configuration.Trace {
+    fmt.Println(instrumentedReference, "created")
+  }
   return instrumentedReference
 }
 
@@ -170,13 +192,16 @@ func actorBehavior(configuration *ActorConfiguration, behavior Behavior, referen
   }
   for {
     if behavior != nil {
-      msg := <-reference
+      message := <-reference
       if configuration.Trace {
-        fmt.Println(instrumentedReference, "<-", msg)
+        fmt.Println(instrumentedReference, "<-", message)
       }
       context := Context{Become: become, Create: configuration.Create, Self: instrumentedReference}
-      behavior(context, msg)
+      behavior(context, message)
       configuration.waitGroup.Done() // one message has been delivered
+      if configuration.Trace {
+        fmt.Println(instrumentedReference, "completed", message)
+      }
     } else {
       return // this actor behavior has been replace.. go away
     }

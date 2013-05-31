@@ -12,6 +12,7 @@
   // create a new actor configuration
   func main() {
     config := actor.Configuration()
+    config.Trace = true // trace message deliveries
     // create a new actor
     printer := config.Create(Print)
     // send a message to an actor
