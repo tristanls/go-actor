@@ -178,8 +178,11 @@ func actorBehavior(configuration *ActorConfiguration, behavior Behavior, referen
       // reporting finishing the behavior (behavior already finished, only
       // the report is delayed to allow for other messages to be delivered)
       // perhaps this parameter should be configurable?
+      // it also need only be a tiny amount of time, just enough to allow
+      // the channels sent to in the behavior above to increment the 
+      // wait group counter
       go func() {
-        time.Sleep(1000 * time.Millisecond)
+        time.Sleep(100 * time.Millisecond)
         configuration.waitGroup.Done() // one message has been processed
       }()
       if configuration.Trace {
