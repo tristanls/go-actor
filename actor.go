@@ -39,6 +39,7 @@ package actor
 import (
   "fmt"
   "sync"
+  "time"
 )
 
 // Become is a function that takes the behavior to handle the next message
@@ -173,7 +174,14 @@ func actorBehavior(configuration *ActorConfiguration, behavior Behavior, referen
       // and Done() being called below, where the message is pulled off of a
       // channel, Done() executes, config finishes, and then only Add(1) 
       // is called :/ ... by then, main() exits
-      configuration.waitGroup.Done() // one message has been processed
+      // the current fix is to wait a set amount of time before
+      // reporting finishing the behavior (behavior already finished, only
+      // the report is delayed to allow for other messages to be delivered)
+      // perhaps this parameter should be configurable?
+      go func() {
+        time.Sleep(1000 * time.Millisecond)
+        configuration.waitGroup.Done() // one message has been processed
+      }()
       if configuration.Trace {
         fmt.Println(instrumentedReference, "completed", message)
       }
