@@ -88,6 +88,9 @@ func (configuration *ActorConfiguration) Create(behavior Behavior) Reference {
         message, ok := <-instrumentedReference
         if !ok { break }
         configuration.waitGroup.Add(1)
+        if configuration.Trace {
+          fmt.Println(instrumentedReference, "queued", message)
+        }
         buffer = append(buffer, message)
       }
 
@@ -95,6 +98,9 @@ func (configuration *ActorConfiguration) Create(behavior Behavior) Reference {
       case message, ok := <-instrumentedReference:
         if !ok { break receiveLoop }
         configuration.waitGroup.Add(1)
+        if configuration.Trace {
+          fmt.Println(instrumentedReference, "queued", message)
+        }
         buffer = append(buffer, message)
       case reference <- buffer[0]:
         buffer = buffer[1:]
@@ -203,7 +209,7 @@ func actorBehavior(configuration *ActorConfiguration, behavior Behavior, referen
         fmt.Println(instrumentedReference, "completed", message)
       }
     } else {
-      return // this actor behavior has been replace.. go away
+      return // this actor behavior has been replaced.. go away
     }
   }
 }
