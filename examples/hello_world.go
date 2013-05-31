@@ -12,6 +12,7 @@
   // create a new actor configuration
   func main() {
     config := actor.Configuration()
+    config.Trace = true // trace message deliveries
     // create a new actor
     printer := config.Create(Print)
     // send a message to an actor
@@ -20,5 +21,5 @@
     printer <- actor.CreateMessage("hello world")
     printer <- actor.Message{Params: []interface{}{"hello world"}}
     // wait for actor configuration to finish
-    <-config.Done
+    config.Wait()
   }

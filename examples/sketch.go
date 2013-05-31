@@ -5,6 +5,9 @@ import "github.com/tristanls/go-actor"
 
 func Change(context actor.Context, msg actor.Message) {
   context.Self <- msg
+  context.Self <- msg
+  context.Self <- msg
+  context.Self <- msg
   context.Become(Print)
 }
 
@@ -16,7 +19,8 @@ func Print(context actor.Context, msg actor.Message) {
 
 func main() {
   config := actor.Configuration()
+  config.Trace = true
   change := config.Create(Change)
   change <- config.CreateMessage("foo")
-  <-config.Done
+  config.Wait()
 }
