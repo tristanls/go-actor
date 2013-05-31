@@ -20,5 +20,5 @@
     printer <- actor.CreateMessage("hello world")
     printer <- actor.Message{Params: []interface{}{"hello world"}}
     // wait for actor configuration to finish
-    <-config.Done
+    config.Wait()
   }

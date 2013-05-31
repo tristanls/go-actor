@@ -18,5 +18,5 @@ func main() {
   config := actor.Configuration()
   change := config.Create(Change)
   change <- config.CreateMessage("foo")
-  <-config.Done
+  config.Wait()
 }
