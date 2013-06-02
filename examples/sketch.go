@@ -12,7 +12,7 @@ func Change(context actor.Context, msg actor.Message) {
 }
 
 func Print(context actor.Context, msg actor.Message) {
-  for _, param := range msg.Params {
+  for _, param := range msg {
     fmt.Println(param.(string))
   }
 }
@@ -21,6 +21,6 @@ func main() {
   config := actor.Configuration()
   config.Trace = true
   change := config.Create(Change)
-  change <- config.CreateMessage("foo")
+  change <- actor.Message{"foo"}
   config.Wait()
 }

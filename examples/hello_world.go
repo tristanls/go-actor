@@ -3,7 +3,7 @@
   import "github.com/tristanls/go-actor"
   // create an actor behavior
   func Print(context actor.Context, msg actor.Message) {
-    for _, param := range msg.Params {
+    for _, param := range msg {
       fmt.Println(param.(string))
     }
     // starting go routines within an actor behavior is *NOT SAFE*
@@ -16,10 +16,7 @@
     // create a new actor
     printer := config.Create(Print)
     // send a message to an actor
-    // both ways of creating a message are identical
-    printer <- config.CreateMessage("hello world")
-    printer <- actor.CreateMessage("hello world")
-    printer <- actor.Message{Params: []interface{}{"hello world"}}
+    printer <- actor.Message{"hello world"}
     // wait for actor configuration to finish
     config.Wait()
   }
