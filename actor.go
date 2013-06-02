@@ -10,7 +10,7 @@
 //
 //    // create an actor behavior
 //    func Print(context actor.Context, msg actor.Message) {
-//      for _, param := range msg.Params {
+//      for _, param := range msg {
 //        fmt.Println(param.(string))
 //      }  
 //      // starting go routines within an actor behavior is *NOT SAFE*
@@ -26,10 +26,7 @@
 //      printer := config.Create(Print)
 //     
 //      // send a message to an actor
-//      // both ways of creating a message are identical
-//      printer <- config.CreateMessage("hello world")
-//      printer <- actor.CreateMessage("hello world")
-//      printer <- actor.Message{Params: []interface{}{"hello world"}}
+//      printer <- actor.Message{"hello world"}
 //
 //      // wait for actor configuration to finish
 //      config.Wait()
@@ -52,9 +49,7 @@ type Become func(Behavior)
 type Behavior func(Context, Message)
 
 // Message is just a slice of data
-type Message struct {
-  Params []interface{}
-}
+type Message []interface{}
 
 // Reference to an actor is a channel that accepts messages
 type Reference chan<- Message
@@ -117,15 +112,6 @@ func (configuration *ActorConfiguration) Create(behavior Behavior) Reference {
   return instrumentedReference
 }
 
-// CreateMessage is syntactic sugar to create a Message
-func (configuration *ActorConfiguration) CreateMessage(params ...interface{}) Message {
-  message := Message{Params: make([]interface{}, len(params), len(params))}
-  for index, param := range params {
-    message.Params[index] = param
-  }
-  return message
-}
-
 // Wait blocks until the actor configuration finishes executing
 func (configuration *ActorConfiguration) Wait() {
   configuration.waitGroup.Wait()
@@ -141,15 +127,6 @@ type Context struct {
 // Configuration creates a new actor configuration
 func Configuration() ActorConfiguration {
   return ActorConfiguration{}
-}
-
-// CreateMessage is syntactic sugar to create a Message
-func CreateMessage(params ...interface{}) Message {
-  message := Message{Params: make([]interface{}, len(params), len(params))}
-  for index, param := range params {
-    message.Params[index] = param
-  }
-  return message
 }
 
 // actorBehavior implements execution of actor behaviors, become semantics,
