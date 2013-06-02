@@ -54,11 +54,6 @@ type Message []interface{}
 // Reference to an actor is a channel that accepts messages
 type Reference chan<- Message
 
-// Send is here for completeness, use `Reference <- Message` notation instead
-func (reference Reference) Send(msg Message) {
-  reference <- msg
-}
-
 // ActorConfiguration holds the state of an actor configuration
 // To wait for all actors to finish call ActorConfiguration.Wait(), for example:
 //    config := actor.Configuration()
